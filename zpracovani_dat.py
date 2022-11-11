@@ -9,10 +9,33 @@ výstupem by mělo být (pro každý kontejner):
 import datetime
 import json
 import re
+import psycopg2
+
+# Connect to postgres DB
+conn = psycopg2.connect("dbname=parsing_json user=postgres password=heslo")
+
+# Open a cursor to perform database operations
+cur = conn.cursor()
+
+# Execute a query
+cur.execute('DROP TABLE Devices')
+
+cur.execute('''
+    CREATE TABLE Devices (
+        device_id SERIAL NOT NULL PRIMARY KEY UNIQUE, 
+        name TEXT UNIQUE, 
+        CPU_usage INTEGER, 
+        memory_usage INTEGER, 
+        created_at VARCHAR(255),
+        status TEXT,
+        IPs TEXT
+    )
+''')
+
+# Retrieve query results
+#records = cur.fetchall()
 
 """Extract nested values from a JSON tree."""
-
-
 def json_extract(obj, key):
     """Recursively fetch values from nested JSON."""
     arr = []
@@ -46,6 +69,9 @@ with open(fname) as file:
     for data in json_data: 
         #print('memory usage: ', data['state']) # [0]['memory'][0]['usage'])
         #print(json_extract(data, 'memory'))
+        name = data['name']
+        status = data['status']
+        created_at = data['created_at']
         print('name: ', data["name"])
         print('status: ', data['status'])
         print('created at: ', data['created_at'])
@@ -83,10 +109,30 @@ with open(fname) as file:
                 except ValueError: 
                     print('jsem tu')
 
-                """ 
-                for key in data['state']: 
-                    if key == 'memory': 
-                        print(key)
-                """ 
+               
 
         print()
+        print('typy: ', type(name), type(cpu_usage), type(memory_usage), type(created_at), type(status), type(addresses))
+        cpu_usage = str(cpu_usage)
+        memory_usage = str(memory_usage)
+        addresses = str(addresses)
+        print('typy: ', type(name), type(cpu_usage), type(memory_usage), type(created_at), type(status), type(addresses))
+
+        print()
+        # giving data to sql: 
+        cur.executemany('''INSERT INTO Devices (name, CPU_usage, memory_usage, 
+                        created_at, status, IPs) VALUES (%s, %s, %s, %s, %s, %s)''', (name, cpu_usage, memory_usage, 
+                        created_at, status, addresses))
+        conn.commit()
+
+
+# display dtb
+db_version = cur.fetchone()
+print(db_version)
+
+
+# close the communication with the postgreSQL
+cur.close()
+conn.close()
+
+
