@@ -61,19 +61,22 @@ with open(fname) as file:
                                 if key == 'usage': 
                                     memory_usage = value
                                     print('memory usage: ', memory_usage)
+                        
+                        elif key == 'cpu': 
+                            cpu_dict = value
+                            for key, value in cpu_dict.items(): 
+                                if key == 'usage': 
+                                    cpu_usage = value
+                                    print('cpu usage: ', cpu_usage)
                             
-
-                #print(state_dict)
-                #for value in data['memory']: 
-                #    usage = value['usage']
-                #    print('memory usage: ', usage)
-                #if key == 'memory': 
-                 #   print(value)
                 except AttributeError: 
                     print('expanded_devices')
-                    pass
+                
+
                 """ 
                 for key in data['state']: 
                     if key == 'memory': 
                         print(key)
                 """ 
+
+        print()
