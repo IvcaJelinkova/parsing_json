@@ -6,9 +6,9 @@ výstupem by mělo být (pro každý kontejner):
     Datumová pole převeďte na UTC timestamp.  
 """ 
 
-import json, re
 import datetime
-
+import json
+import re
 
 """Extract nested values from a JSON tree."""
 
@@ -68,10 +68,20 @@ with open(fname) as file:
                                 if key == 'usage': 
                                     cpu_usage = value
                                     print('cpu usage: ', cpu_usage)
+
+                        elif key == 'network': 
+                            # extrakce IP like – "address" : "127.0.0.1",
+                            network_str = str(value)
+                            #print('network: ', network_str, type(network_str))
+                            addresses = []
+                            addresses = re.findall("address': '([0-9a-z:.]*)'", network_str)
+                            print('IP: ', len(addresses), addresses)
+
                             
                 except AttributeError: 
                     print('expanded_devices')
-                
+                except ValueError: 
+                    print('jsem tu')
 
                 """ 
                 for key in data['state']: 
