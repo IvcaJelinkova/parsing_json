@@ -7,12 +7,23 @@ výstupem by mělo být (pro každý kontejner):
 """ 
 
 import datetime
+from datetime import timezone as TZ
 import json
 import re
 import psycopg2
 
+
+dt = datetime.datetime.now(TZ.utc)
+print('dt: ', dt)
+utc_time = dt.replace(tzinfo=TZ.utc)
+print('utc_time: ', utc_time)
+utc_timestamp = utc_time.timestamp()
+print(utc_timestamp)
+
+
+
 # Connect to postgres DB
-conn = psycopg2.connect("dbname=parsing_json user=postgres password=heslo")
+conn = psycopg2.connect('dbname=parsing_json user=postgres password=heslo')
 
 # Open a cursor to perform database operations
 cur = conn.cursor()
@@ -22,39 +33,15 @@ cur.execute('DROP TABLE Devices')
 
 cur.execute('''
     CREATE TABLE Devices (
-        device_id SERIAL NOT NULL PRIMARY KEY UNIQUE, 
+        device_id SERIAL PRIMARY KEY, 
         name TEXT UNIQUE, 
         CPU_usage INTEGER, 
         memory_usage INTEGER, 
-        created_at VARCHAR(255),
+        created_at TEXT,
         status TEXT,
         IPs TEXT
     )
 ''')
-
-# Retrieve query results
-#records = cur.fetchall()
-
-"""Extract nested values from a JSON tree."""
-def json_extract(obj, key):
-    """Recursively fetch values from nested JSON."""
-    arr = []
-
-    def extract(obj, arr, key):
-        """Recursively search for values of key in JSON tree."""
-        if isinstance(obj, dict):
-            for k, v in obj.items():
-                if isinstance(v, (dict, list)):
-                    extract(v, arr, key)
-                elif k == key:
-                    arr.append(v)
-        elif isinstance(obj, list):
-            for item in obj:
-                extract(item, arr, key)
-        return arr
-
-    values = extract(obj, arr, key)
-    return values
 
 
 # loading the file with data: 
@@ -66,12 +53,12 @@ if len(fname) < 1:
 with open(fname) as file: 
     str_data = file.read()
     json_data = json.loads(str_data)
+    id = 1
     for data in json_data: 
-        #print('memory usage: ', data['state']) # [0]['memory'][0]['usage'])
-        #print(json_extract(data, 'memory'))
         name = data['name']
         status = data['status']
         created_at = data['created_at']
+        print(f'{id}.)')
         print('name: ', data["name"])
         print('status: ', data['status'])
         print('created at: ', data['created_at'])
@@ -106,24 +93,23 @@ with open(fname) as file:
                             
                 except AttributeError: 
                     print('expanded_devices')
-                except ValueError: 
-                    print('jsem tu')
+                #except ValueError: 
+                #    print('jsem tu')
 
                
-
         print()
-        print('typy: ', type(name), type(cpu_usage), type(memory_usage), type(created_at), type(status), type(addresses))
+        # pretypovani kvuli exportu do databaze
+        id = str(id)
         cpu_usage = str(cpu_usage)
         memory_usage = str(memory_usage)
         addresses = str(addresses)
-        print('typy: ', type(name), type(cpu_usage), type(memory_usage), type(created_at), type(status), type(addresses))
 
         print()
         # giving data to sql: 
-        cur.executemany('''INSERT INTO Devices (name, CPU_usage, memory_usage, 
-                        created_at, status, IPs) VALUES (%s, %s, %s, %s, %s, %s)''', (name, cpu_usage, memory_usage, 
-                        created_at, status, addresses))
+        cur.execute('INSERT INTO Devices (name, CPU_usage, memory_usage, created_at, status, IPs) VALUES (%s, %s, %s, %s, %s, %s)', (name, cpu_usage, memory_usage, created_at, status, addresses))
         conn.commit()
+        id = int(id)
+        id += 1
 
 
 # display dtb
