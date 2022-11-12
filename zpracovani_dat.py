@@ -110,6 +110,12 @@ with open(fname) as file:
         conn.commit()
         id = int(id)
         id += 1
+        name = ''
+        cpu_usage = 0
+        memory_usage = 0
+        created_at = '-'
+        status = '-'
+        addresses = []
 
 
 # display dtb
@@ -120,5 +126,4 @@ print(db_version)
 # close the communication with the postgreSQL
 cur.close()
 conn.close()
-
 
