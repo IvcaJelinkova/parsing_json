@@ -93,13 +93,10 @@ with open(fname) as file:
                             
                 except AttributeError: 
                     print('expanded_devices')
-                #except ValueError: 
-                #    print('jsem tu')
 
                
         print()
         # pretypovani kvuli exportu do databaze
-        id = str(id)
         cpu_usage = str(cpu_usage)
         memory_usage = str(memory_usage)
         addresses = str(addresses)
@@ -108,14 +105,15 @@ with open(fname) as file:
         # giving data to sql: 
         cur.execute('INSERT INTO Devices (name, CPU_usage, memory_usage, created_at, status, IPs) VALUES (%s, %s, %s, %s, %s, %s)', (name, cpu_usage, memory_usage, created_at, status, addresses))
         conn.commit()
-        id = int(id)
-        id += 1
+        
+        # nulovani hodnot pro expanded_devices:
         name = ''
         cpu_usage = 0
         memory_usage = 0
         created_at = '-'
         status = '-'
         addresses = []
+        id += 1
 
 
 # display dtb
