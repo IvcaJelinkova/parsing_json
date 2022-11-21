@@ -6,27 +6,9 @@ výstupem by mělo být (pro každý kontejner):
     Datumová pole převeďte na UTC timestamp.  
 """ 
 
-import datetime
-from datetime import timezone as TZ
-from dateutil import parser
-from dateutil.tz import tzoffset
 import json
 import re
 import psycopg2
-
-
-dt = datetime.datetime.now(TZ.utc)
-print('dt: ', dt)
-utc_time = dt.replace(tzinfo=TZ.utc)
-print('utc_time: ', utc_time)
-utc_timestamp = utc_time.timestamp()
-print(utc_timestamp)
-
-
-#parsovani casu: 
-datum = parser.isoparse("2020-05-19T16:23:07+02:00")
-new_datum = datetime.datetime(2020, 5, 19, 16, 23, 7, tzinfo=tzoffset(None, 60*60*2))
-print(datum, new_datum)
 
 
 
@@ -37,8 +19,8 @@ conn = psycopg2.connect('dbname=parsing_json user=postgres password=heslo')
 cur = conn.cursor()
 
 # Execute a query
-cur.execute('DROP TABLE IF EXISTS Devices')
 cur.execute('DROP TABLE IF EXISTS IPs')
+cur.execute('DROP TABLE IF EXISTS Devices')
 
 
 cur.execute('''
@@ -47,14 +29,14 @@ cur.execute('''
         name TEXT UNIQUE, 
         CPU_usage INTEGER, 
         memory_usage INTEGER, 
-        created_at TEXT,
+        created_at TIMESTAMP,
         status TEXT
     )
 ''')
 
 cur.execute('''
     CREATE TABLE IPs (
-        device_id INTEGER, 
+        device_id INTEGER REFERENCES Devices (id), 
         IP TEXT
     )
 ''')
@@ -69,15 +51,15 @@ if len(fname) < 1:
 with open(fname) as file: 
     str_data = file.read()
     json_data = json.loads(str_data)
-    id = 1
+    #id = 1
     for data in json_data: 
         name = data['name']
         status = data['status']
         created_at = data['created_at']
-        print(f'{id}.)')
-        print('name: ', data["name"])
-        print('status: ', data['status'])
-        print('created at: ', data['created_at'])
+        #print(f'{id}.)')
+        #print('name: ', data["name"])
+        #print('status: ', data['status'])
+        #print('created at: ', data['created_at'])
         for key, value in data.items(): 
             if key == 'state': 
                 state_dict = (value)
@@ -89,14 +71,14 @@ with open(fname) as file:
                             for key, value in memory_dict.items(): 
                                 if key == 'usage': 
                                     memory_usage = value
-                                    print('memory usage: ', memory_usage)
+                                    #print('memory usage: ', memory_usage)
                         
                         elif key == 'cpu': 
                             cpu_dict = value
                             for key, value in cpu_dict.items(): 
                                 if key == 'usage': 
                                     cpu_usage = value
-                                    print('cpu usage: ', cpu_usage)
+                                    #print('cpu usage: ', cpu_usage)
 
                         elif key == 'network': 
                             # extrakce IP like – "address" : "127.0.0.1",
@@ -104,29 +86,31 @@ with open(fname) as file:
                             #print('network: ', network_str, type(network_str))
                             addresses = []
                             addresses = re.findall("address': '([0-9a-z:.]*)'", network_str)
-                            print('IP: ', len(addresses), addresses)
+                            #print('IP: ', len(addresses), addresses)
 
                             
                 except AttributeError: 
                     print('expanded_devices')
 
                
-        print()
+        #print()
         # pretypovani kvuli exportu do databaze
-        cpu_usage = str(cpu_usage)
-        memory_usage = str(memory_usage)
-        addresses = str(addresses)
+        #cpu_usage = str(cpu_usage)
+        #memory_usage = str(memory_usage)
+        #addresses = str(addresses)
 
-        print()
+        #print()
         # giving data to sql: 
         cur.execute('INSERT INTO Devices (name, CPU_usage, memory_usage, created_at, status) VALUES (%s, %s, %s, %s, %s)', (name, cpu_usage, memory_usage, created_at, status))
-        print(f'{name}, {id}, {type(name)}, {type(id)}')
-        cur.execute(f'SELECT * FROM Devices WHERE name = {name}')
+        cur.execute(f"SELECT id FROM Devices WHERE name = '{name}'")
         #print(cur.fetchall())
         device_id = cur.fetchone()[0]
-        print(device_id)
-
-        cur.execute('INSERT INTO IPs (device_id, IP) VALUES (%s, %s)', (device_id, addresses))
+        #print(device_id)
+        #print(len(addresses), type(addresses), addresses)
+        for pocet_IP in range(len(addresses)): 
+            address = addresses.pop()
+            #print(address)
+            cur.execute('INSERT INTO IPs (device_id, IP) VALUES (%s, %s)', (device_id, address))
         conn.commit()
         
         # nulovani hodnot pro expanded_devices:
@@ -136,12 +120,12 @@ with open(fname) as file:
         created_at = '-'
         status = '-'
         addresses = []
-        id += 1
+        #id += 1
 
 
 # display dtb
-db_version = cur.fetchone()
-print(db_version)
+#db_version = cur.fetchone()
+#print(db_version)
 
 
 # close the communication with the postgreSQL
